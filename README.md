@@ -6,7 +6,7 @@ Aplicación gráfica para quitar los archivos de metadatos JSON que Google Takeo
 
 - Permite arrastrar una carpeta a la ventana o elegirla con el explorador.
 - Puede buscar también dentro de las subcarpetas.
-- Reconoce los formatos antiguos `foto.ext.json` y los actuales `foto.ext.supplemental-metadata.json` (incluidos nombres largos truncados), siempre que correspondan a una foto en la misma carpeta.
+- Reconoce JSON antiguos (`foto.ext.json`), nuevos (`foto.ext.supplemental-metadata.json`), sufijos acortados o nombres truncados, y variantes numeradas de duplicados. También admite sidecars de vídeo y JSON con el nombre original en el campo `title`, si están junto al archivo multimedia.
 - Enseña la lista antes de borrar y pide confirmación.
 - Elimina únicamente los `.json` de la lista.
 
@@ -32,8 +32,8 @@ sudo dnf install python3-tkinter
 
 ## Instalar como aplicación en Windows
 
-1. Compila la aplicación con `build_windows.bat` si hace falta.
-2. Ejecuta `build_installer.bat` para crear `Instalador_Windows_Takeout.zip`.
+1. Compila la aplicación con `packaging/windows/build_windows.bat` si hace falta.
+2. Ejecuta `packaging/windows/build_installer.bat` para crear `Instalador_Windows_Takeout.zip`.
 3. Extrae el ZIP y abre `Instalar.bat`. Crea accesos en escritorio y menú Inicio, sin permisos de administrador ni internet.
 4. Para quitarla, usa `Desinstalar.bat` desde la carpeta extraída.
 
@@ -44,4 +44,11 @@ El RPM debe construirse en Fedora (o en un entorno Fedora), no en Windows. Consu
 ## Privacidad y seguridad
 
 El programa no envía archivos ni datos a ningún servicio. La búsqueda se realiza localmente. Antes de confirmar, se puede cancelar sin borrar nada. Una vez confirmada, la eliminación de los `.json` no se puede deshacer desde la aplicación; las fotos permanecen intactas.
+
+## Organización del proyecto
+
+- `docs/`: guías e instrucciones.
+- `packaging/windows/`: compilación e instalación para Windows.
+- `packaging/fedora/`: instrucciones y compilación RPM para Fedora.
+- Los archivos Python de la aplicación permanecen en la raíz para que PyCharm y los paquetes sigan encontrándolos.
 

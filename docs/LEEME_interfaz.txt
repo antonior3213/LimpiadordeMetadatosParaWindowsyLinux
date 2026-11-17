@@ -6,7 +6,11 @@ Archivos:
 - requirements_gui.txt: dependencia para habilitar arrastrar y soltar.
 
 Las dos versiones hacen lo mismo y funcionan sin conexión una vez preparada la dependencia.
-La app solo busca archivos con patrón foto.ext.json cuando la foto asociada existe.
+La app reconoce varios nombres de sidecar de Google Takeout: foto.ext.json,
+foto.ext.supplemental-metadata.json, sufijos acortados, nombres truncados y
+variantes numeradas. También reconoce sidecars de vídeo y JSON cuyo campo
+"title" identifica exactamente el archivo multimedia de la misma carpeta.
+Los JSON sin asociación reconocible se conservan.
 No abre ni modifica fotos. Antes de borrar, muestra la lista y pide confirmación.
 
 WINDOWS

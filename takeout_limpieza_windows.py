@@ -318,11 +318,11 @@ class App(TkinterDnD.Tk):
         self.count_label.configure(text=f"{count} archivo" + ("s" if count != 1 else ""),
                                    bg="#e7f1ff" if count else "#edf2f9", fg=BLUE if count else MUTED)
         if count:
-            self.status_var.set("Revisa la lista. Solo se borrarán estos sidecars JSON asociados a fotos.")
+            self.status_var.set("Revisa la lista. Solo se borrarán JSON asociados a fotos o vídeos.")
             self.status_dot.configure(fg=BLUE)
             self.delete_button.set_enabled(True)
         else:
-            self.status_var.set("No se encontraron JSON asociados a fotos en esta carpeta.")
+            self.status_var.set("No se encontraron JSON asociados a fotos o vídeos en esta carpeta.")
             self.status_dot.configure(fg="#aab5c6")
             self.delete_button.set_enabled(False)
 
@@ -332,7 +332,7 @@ class App(TkinterDnD.Tk):
         ok = messagebox.askyesno(
             "Confirmar eliminación",
             f"¿Eliminar los {len(self.matches)} archivos .json de la lista?\n\n"
-            "Las fotos permanecerán intactas. Esta acción no se puede deshacer.",
+            "Las fotos y vídeos permanecerán intactos. Esta acción no se puede deshacer.",
             icon="warning",
         )
         if not ok:
@@ -348,7 +348,7 @@ class App(TkinterDnD.Tk):
         if errors:
             messagebox.showwarning("Proceso terminado", f"Eliminados: {deleted}\nNo se pudieron eliminar {len(errors)} archivos.\n\n" + "\n".join(errors[:8]))
         else:
-            messagebox.showinfo("Proceso terminado", f"Se eliminaron {deleted} archivos .json.\nTus fotos siguen intactas.")
+            messagebox.showinfo("Proceso terminado", f"Se eliminaron {deleted} archivos .json.\nTus fotos y vídeos siguen intactos.")
 
 
 if __name__ == "__main__":

@@ -12,10 +12,10 @@ def main() -> None:
     recursive = input("¿Incluir también subcarpetas? (s/N): ").strip().lower() == "s"
     sidecars = find_takeout_sidecars(folder, recursive)
     if not sidecars:
-        print("No encontré archivos .json de metadatos asociados a fotos.")
+        print("No encontré JSON de metadatos asociados a fotos o vídeos.")
         return
 
-    print(f"\nEncontré {len(sidecars)} archivo(s) .json asociados a fotos:")
+    print(f"\nEncontré {len(sidecars)} archivo(s) .json asociados a fotos o vídeos:")
     for path in sidecars:
         print(f"  {path}")
     print("\nSolo se eliminarán esos archivos .json. Las fotos no se abrirán ni modificarán.")

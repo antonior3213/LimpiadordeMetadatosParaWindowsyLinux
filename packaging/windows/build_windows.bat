@@ -1,6 +1,7 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+for %%I in ("%~dp0..\..") do set "ROOT=%%~fI"
+cd /d "%ROOT%"
 
 if not exist ".venv\Scripts\python.exe" py -3 -m venv .venv
 if errorlevel 1 goto :error
