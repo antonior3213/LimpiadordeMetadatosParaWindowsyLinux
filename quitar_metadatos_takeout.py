@@ -1,22 +1,5 @@
 from pathlib import Path
-
-# Google Takeout photo sidecars, such as IMG_123.jpg.json.
-PHOTO_EXTENSIONS = {
-    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif",
-    ".tif", ".tiff", ".bmp", ".dng", ".cr2", ".cr3", ".nef",
-    ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw",
-}
-
-
-def find_takeout_sidecars(folder: Path, recursive: bool) -> list[Path]:
-    paths = folder.rglob("*.json") if recursive else folder.glob("*.json")
-    matches = []
-    for sidecar in paths:
-        # Only match the Takeout pattern: photo filename + its extension + .json.
-        photo = sidecar.with_suffix("")
-        if photo.suffix.lower() in PHOTO_EXTENSIONS and photo.is_file():
-            matches.append(sidecar)
-    return sorted(matches)
+from takeout_sidecars import find_takeout_sidecars
 
 
 def main() -> None:
@@ -52,3 +35,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

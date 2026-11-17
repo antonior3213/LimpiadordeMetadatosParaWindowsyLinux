@@ -1,6 +1,7 @@
 from pathlib import Path
 from tkinter import Tk, StringVar, BooleanVar, filedialog, messagebox, ttk
 import tkinter as tk
+from takeout_sidecars import find_takeout_sidecars as find_sidecars
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
@@ -10,11 +11,6 @@ except ImportError as exc:
         "La aplicación no usa internet al ejecutarse."
     ) from exc
 
-PHOTO_EXTENSIONS = {
-    ".jpg", ".jpeg", ".png", ".gif", ".webp", ".heic", ".heif",
-    ".tif", ".tiff", ".bmp", ".dng", ".cr2", ".cr3", ".nef",
-    ".arw", ".orf", ".rw2", ".raf", ".pef", ".srw",
-}
 BG = "#f3f6fb"
 INK = "#182b49"
 MUTED = "#70809a"
@@ -22,16 +18,6 @@ BLUE = "#3975e8"
 PALE_BLUE = "#eef4ff"
 BORDER = "#dce5f2"
 WHITE = "#ffffff"
-
-
-def find_sidecars(folder: Path, recursive: bool) -> list[Path]:
-    candidates = folder.rglob("*.json") if recursive else folder.glob("*.json")
-    found = []
-    for sidecar in candidates:
-        photo = sidecar.with_suffix("")
-        if photo.suffix.lower() in PHOTO_EXTENSIONS and photo.is_file():
-            found.append(sidecar)
-    return sorted(found, key=lambda p: str(p).casefold())
 
 
 class App(TkinterDnD.Tk):
@@ -133,7 +119,7 @@ class App(TkinterDnD.Tk):
         heading_left.pack(side="left", fill="x", expand=True)
         ttk.Label(heading_left, text="Vista previa", style="Card.TLabel",
                   font=("TkDefaultFont", 12, "bold")).pack(anchor="w")
-        ttk.Label(heading_left, text="Solo se mostrarán archivos .json con una foto correspondiente.",
+        ttk.Label(heading_left, text="Reconoce los nombres antiguos y los nuevos de Google Takeout.",
                   style="Muted.TLabel").pack(anchor="w", pady=(3, 0))
         self.count_label = tk.Label(heading, text="0 archivos", bg="#edf2f8", fg=MUTED,
                                     font=("TkDefaultFont", 9, "bold"), padx=11, pady=6)
@@ -222,7 +208,7 @@ class App(TkinterDnD.Tk):
         self.count_label.configure(text=f"{count} archivo" + ("s" if count != 1 else ""),
                                    bg="#e9f1ff" if count else "#edf2f8", fg=BLUE if count else MUTED)
         if count:
-            self.status_var.set("Revisa la lista. Solo se borrarán estos archivos JSON.")
+            self.status_var.set("Revisa la lista. Solo se borrarán estos sidecars JSON asociados a fotos.")
             self.status_dot.configure(fg=BLUE)
             self.delete_button.state(["!disabled"])
         else:
@@ -257,3 +243,6 @@ class App(TkinterDnD.Tk):
 
 if __name__ == "__main__":
     App().mainloop()
+
+
+
