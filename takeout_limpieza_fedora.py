@@ -1,6 +1,7 @@
 from pathlib import Path
 from tkinter import Tk, StringVar, BooleanVar, filedialog, messagebox, ttk
 import tkinter as tk
+
 from takeout_sidecars import find_takeout_sidecars as find_sidecars
 
 try:
@@ -11,152 +12,261 @@ except ImportError as exc:
         "La aplicación no usa internet al ejecutarse."
     ) from exc
 
-BG = "#f3f6fb"
-INK = "#182b49"
-MUTED = "#70809a"
-BLUE = "#3975e8"
-PALE_BLUE = "#eef4ff"
-BORDER = "#dce5f2"
+BG_TOP = "#edf3ff"
+BG_BOTTOM = "#f5f7fb"
+INK = "#17233b"
+MUTED = "#718099"
+BLUE = "#147df5"
+BLUE_DARK = "#0969da"
+PALE_BLUE = "#f3f7ff"
+GLASS = "#fbfcff"
 WHITE = "#ffffff"
+BORDER = "#e1e8f3"
+RED = "#ed5365"
+
+
+def _mix_color(first: str, second: str, amount: float) -> str:
+    a = tuple(int(first[i:i + 2], 16) for i in (1, 3, 5))
+    b = tuple(int(second[i:i + 2], 16) for i in (1, 3, 5))
+    rgb = tuple(round(x + (y - x) * amount) for x, y in zip(a, b))
+    return "#%02x%02x%02x" % rgb
+
+
+class PillButton(tk.Canvas):
+    """Small rounded, glossy button drawn with standard Tk Canvas primitives."""
+
+    def __init__(self, master, text, command, width=150, height=44, kind="glass"):
+        super().__init__(master, width=width, height=height, bg=master.cget("bg"),
+                         highlightthickness=0, bd=0, cursor="hand2")
+        self.label = text
+        self.command = command
+        self.kind = kind
+        self.enabled = True
+        self.hovered = False
+        self.bind("<Enter>", self._on_enter)
+        self.bind("<Leave>", self._on_leave)
+        self.bind("<Button-1>", self._on_click)
+        self._draw()
+
+    def _colors(self):
+        if not self.enabled:
+            return "#dce2ec", "#8793a5", "#dce2ec"
+        if self.kind == "danger":
+            fill = "#e94f63" if self.hovered else RED
+            return fill, WHITE, "#ff8a98"
+        if self.kind == "primary":
+            fill = BLUE_DARK if self.hovered else BLUE
+            return fill, WHITE, "#82baff"
+        fill = "#e9f1ff" if self.hovered else WHITE
+        return fill, BLUE_DARK if self.hovered else INK, "#ffffff"
+
+    def _draw(self):
+        self.delete("all")
+        width = int(self.cget("width"))
+        height = int(self.cget("height"))
+        fill, text_color, shine = self._colors()
+        radius = height / 2
+        points = [radius, 1, width-radius, 1, width-1, height/2,
+                  width-radius, height-1, radius, height-1, 1, height/2]
+        self.create_polygon(points, smooth=True, splinesteps=32, fill=fill, outline=fill)
+        self.create_line(radius * .72, 3, width - radius * .72, 3, fill=shine, width=1)
+        self.create_text(width/2, height/2, text=self.label, fill=text_color,
+                         font=self.master.winfo_toplevel().ui_font(10, True))
+
+    def _on_enter(self, _event):
+        self.hovered = True
+        self._draw()
+
+    def _on_leave(self, _event):
+        self.hovered = False
+        self._draw()
+
+    def _on_click(self, _event):
+        if self.enabled:
+            self.command()
+
+    def set_enabled(self, enabled: bool):
+        self.enabled = enabled
+        self.configure(cursor="hand2" if enabled else "arrow")
+        self._draw()
 
 
 class App(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
         self.title("Takeout · Limpieza de metadatos")
-        self.geometry("900x720")
-        self.minsize(720, 620)
-        self.configure(bg=BG)
+        self.geometry("1020x790")
+        self.minsize(760, 690)
+        self.configure(bg=BG_BOTTOM)
+        self.font_family = self.tk.call("font", "actual", "TkDefaultFont", "-family")
         self.folder = None
         self.matches = []
         self.folder_title_var = StringVar(value="Aún no has elegido una carpeta")
-        self.folder_path_var = StringVar(value="Arrastra aquí una carpeta de Google Takeout o selecciónala abajo.")
+        self.folder_path_var = StringVar(value="Arrastra una carpeta de Google Takeout aquí o selecciónala abajo.")
         self.recursive_var = BooleanVar(value=True)
         self.status_var = StringVar(value="Selecciona una carpeta para ver los archivos encontrados.")
         self._style()
         self._build()
 
+    def ui_font(self, size=10, bold=False):
+        return (self.font_family, size, "bold") if bold else (self.font_family, size)
+
     def _style(self):
         style = ttk.Style(self)
         style.theme_use("clam")
-        style.configure("TFrame", background=BG)
-        style.configure("Card.TFrame", background=WHITE)
-        style.configure("TLabel", background=BG, foreground=INK, font=("TkDefaultFont", 10))
-        style.configure("Card.TLabel", background=WHITE, foreground=INK, font=("TkDefaultFont", 10))
-        style.configure("Muted.TLabel", background=WHITE, foreground=MUTED, font=("TkDefaultFont", 9))
-        style.configure("Treeview", rowheight=34, font=("TkDefaultFont", 10), background=WHITE,
-                        fieldbackground=WHITE, foreground=INK, borderwidth=0)
-        style.configure("Treeview.Heading", font=("TkDefaultFont", 9, "bold"),
-                        background="#f5f7fb", foreground=MUTED, relief="flat", padding=(10, 9))
-        style.map("Treeview", background=[("selected", "#e8f0ff")], foreground=[("selected", INK)])
-        style.configure("TButton", font=("TkDefaultFont", 10), padding=(13, 9),
-                        background=WHITE, foreground=INK, bordercolor=BORDER)
-        style.map("TButton", background=[("active", "#f1f5fb")])
-        style.configure("Primary.TButton", font=("TkDefaultFont", 10, "bold"), padding=(14, 10),
-                        background=BLUE, foreground=WHITE, bordercolor=BLUE)
-        style.map("Primary.TButton", background=[("active", "#2861ca"), ("disabled", "#aab8d0")],
-                  foreground=[("disabled", "#f5f7fb")])
-        style.configure("Delete.TButton", font=("TkDefaultFont", 10, "bold"), padding=(16, 11),
-                        background="#d84d5b", foreground=WHITE, bordercolor="#d84d5b")
-        style.map("Delete.TButton", background=[("active", "#bf3949"), ("disabled", "#c9cfd9")],
-                  foreground=[("disabled", "#f7f7f7")])
-        style.configure("TCheckbutton", background=BG, foreground=INK, font=("TkDefaultFont", 10))
+        style.configure("Root.TFrame", background=BG_BOTTOM)
+        style.configure("Glass.TFrame", background=GLASS)
+        style.configure("TLabel", background=BG_BOTTOM, foreground=INK, font=self.ui_font(10))
+        style.configure("Glass.TLabel", background=GLASS, foreground=INK, font=self.ui_font(10))
+        style.configure("Muted.TLabel", background=GLASS, foreground=MUTED, font=self.ui_font(9))
+        style.configure("Treeview", rowheight=38, font=self.ui_font(10), background="#ffffff",
+                        fieldbackground="#ffffff", foreground=INK, borderwidth=0, relief="flat")
+        style.configure("Treeview.Heading", font=self.ui_font(9, True), background="#f5f8fd",
+                        foreground=MUTED, relief="flat", padding=(12, 11))
+        style.map("Treeview", background=[("selected", "#e8f1ff")], foreground=[("selected", INK)])
+        style.configure("Vertical.TScrollbar", background="#e9eef6", troughcolor=WHITE,
+                        bordercolor=WHITE, arrowcolor=MUTED, relief="flat")
+        style.configure("TCheckbutton", background=BG_BOTTOM, foreground=INK, font=self.ui_font(10),
+                        padding=(2, 5))
+        style.map("TCheckbutton", background=[("active", BG_BOTTOM)])
 
     def _build(self):
-        outer = ttk.Frame(self, padding=(28, 24, 28, 20))
-        outer.pack(fill="both", expand=True)
+        self.wallpaper = tk.Canvas(self, highlightthickness=0, bd=0, bg=BG_BOTTOM)
+        self.wallpaper.pack(fill="both", expand=True)
+        self.content = ttk.Frame(self.wallpaper, style="Root.TFrame", padding=(34, 28, 34, 24))
+        self.content_window = self.wallpaper.create_window((0, 0), window=self.content, anchor="n")
+        self.wallpaper.bind("<Configure>", self._paint_wallpaper)
 
-        # Branded header
-        header = tk.Frame(outer, bg="#182b49", padx=24, pady=20)
+        # Floating glass header
+        header = tk.Frame(self.content, bg=GLASS, highlightbackground=WHITE, highlightthickness=2,
+                          padx=24, pady=20)
         header.pack(fill="x", pady=(0, 18))
-        badge = tk.Label(header, text="T", bg="#294b7c", fg=WHITE,
-                         font=("TkDefaultFont", 17, "bold"), width=3, height=1)
-        badge.pack(side="left", padx=(0, 16))
-        title_box = tk.Frame(header, bg="#182b49")
+        logo = tk.Canvas(header, width=58, height=58, bg=GLASS, highlightthickness=0)
+        logo.pack(side="left", padx=(0, 17))
+        logo.create_oval(4, 4, 54, 54, fill="#e5efff", outline="#ffffff", width=2)
+        logo.create_oval(14, 14, 44, 44, fill=BLUE, outline="#a9ceff", width=1)
+        logo.create_text(29, 29, text="✦", fill=WHITE, font=self.ui_font(15, True))
+        title_box = tk.Frame(header, bg=GLASS)
         title_box.pack(side="left", fill="x", expand=True)
-        tk.Label(title_box, text="Limpieza de Google Takeout", bg="#182b49", fg=WHITE,
-                 font=("TkDefaultFont", 20, "bold")).pack(anchor="w")
-        tk.Label(title_box, text="Quita los JSON de metadatos y conserva tus fotos intactas.",
-                 bg="#182b49", fg="#c9d7ed", font=("TkDefaultFont", 10)).pack(anchor="w", pady=(4, 0))
+        tk.Label(title_box, text="Limpieza de Google Takeout", bg=GLASS, fg=INK,
+                 font=self.ui_font(22, True)).pack(anchor="w")
+        tk.Label(title_box, text="Un espacio más limpio para tus recuerdos.", bg=GLASS, fg=MUTED,
+                 font=self.ui_font(10)).pack(anchor="w", pady=(5, 0))
+        self.privacy_pill = tk.Label(header, text="●  TODO EN TU EQUIPO", bg="#eef5ff", fg=BLUE_DARK,
+                                     font=self.ui_font(8, True), padx=13, pady=8)
+        self.privacy_pill.pack(side="right", anchor="n", padx=(8, 0), pady=(2, 0))
 
-        # Folder drop zone
-        drop_card = tk.Frame(outer, bg=PALE_BLUE, highlightbackground="#c8d9f5",
-                             highlightthickness=1, padx=18, pady=16)
+        # Soft blue glass folder drop area
+        drop_card = tk.Frame(self.content, bg=PALE_BLUE, highlightbackground=WHITE,
+                             highlightthickness=2, padx=20, pady=18)
         drop_card.pack(fill="x")
-        top = tk.Frame(drop_card, bg=PALE_BLUE)
-        top.pack(fill="x")
-        tk.Label(top, text="＋", bg=PALE_BLUE, fg=BLUE, font=("TkDefaultFont", 18, "bold")).pack(side="left", padx=(2, 12))
-        text_box = tk.Frame(top, bg=PALE_BLUE)
-        text_box.pack(side="left", fill="x", expand=True)
-        tk.Label(text_box, text="Arrastra aquí la carpeta de fotos", bg=PALE_BLUE, fg=INK,
-                 font=("TkDefaultFont", 11, "bold")).pack(anchor="w")
-        tk.Label(text_box, text="o búscala en tu equipo", bg=PALE_BLUE, fg=MUTED,
-                 font=("TkDefaultFont", 9)).pack(anchor="w", pady=(3, 0))
-        self.choose_button = ttk.Button(top, text="Elegir carpeta…", command=self.choose_folder)
+        drop_top = tk.Frame(drop_card, bg=PALE_BLUE)
+        drop_top.pack(fill="x")
+        icon = tk.Canvas(drop_top, width=52, height=52, bg=PALE_BLUE, highlightthickness=0)
+        icon.pack(side="left", padx=(0, 14))
+        icon.create_oval(2, 2, 50, 50, fill="#e1edff", outline="#ffffff", width=2)
+        icon.create_text(26, 24, text="↓", fill=BLUE, font=self.ui_font(23, True))
+        drop_text = tk.Frame(drop_top, bg=PALE_BLUE)
+        drop_text.pack(side="left", fill="x", expand=True)
+        tk.Label(drop_text, text="Suelta aquí tu carpeta de fotos", bg=PALE_BLUE, fg=INK,
+                 font=self.ui_font(12, True)).pack(anchor="w")
+        tk.Label(drop_text, text="o selecciónala desde el explorador de archivos", bg=PALE_BLUE, fg=MUTED,
+                 font=self.ui_font(9)).pack(anchor="w", pady=(4, 0))
+        self.choose_button = PillButton(drop_top, "Elegir carpeta", self.choose_folder,
+                                        width=155, height=44, kind="primary")
         self.choose_button.pack(side="right", padx=(12, 0))
-        tk.Label(drop_card, textvariable=self.folder_title_var, bg=PALE_BLUE, fg=INK,
-                 font=("TkDefaultFont", 9, "bold"), anchor="w").pack(fill="x", padx=(44, 0), pady=(12, 2))
-        self.folder_path_label = tk.Label(drop_card, textvariable=self.folder_path_var, bg=PALE_BLUE,
-                                          fg=MUTED, font=("TkDefaultFont", 9), anchor="w", justify="left",
-                                          wraplength=760)
-        self.folder_path_label.pack(fill="x", padx=(44, 0))
-        for widget in (drop_card, top, badge, title_box, text_box, *top.winfo_children()):
+
+        selected = tk.Frame(drop_card, bg="#edf4ff", highlightbackground="#e0eaff", highlightthickness=1,
+                            padx=13, pady=10)
+        selected.pack(fill="x", pady=(16, 0), padx=(66, 0))
+        self.folder_name_label = tk.Label(selected, textvariable=self.folder_title_var, bg="#edf4ff", fg=INK,
+                                          font=self.ui_font(9, True), anchor="w")
+        self.folder_name_label.pack(fill="x")
+        self.folder_path_label = tk.Label(selected, textvariable=self.folder_path_var, bg="#edf4ff", fg=MUTED,
+                                          font=self.ui_font(9), anchor="w", justify="left", wraplength=800)
+        self.folder_path_label.pack(fill="x", pady=(3, 0))
+        drop_targets = [drop_card, drop_top, icon, drop_text, selected,
+                        self.folder_name_label, self.folder_path_label, *drop_text.winfo_children()]
+        for widget in drop_targets:
             self._register_drop(widget)
 
-        # Search options
-        options = ttk.Frame(outer)
-        options.pack(fill="x", pady=(14, 14))
-        ttk.Checkbutton(options, text="Incluir subcarpetas", variable=self.recursive_var,
+        # Preferences and re-scan action
+        options = ttk.Frame(self.content, style="Root.TFrame")
+        options.pack(fill="x", pady=(14, 15))
+        ttk.Checkbutton(options, text="Incluir también las subcarpetas", variable=self.recursive_var,
                         command=self.scan).pack(side="left")
-        ttk.Button(options, text="↻  Buscar de nuevo", command=self.scan).pack(side="right")
+        self.scan_button = PillButton(options, "↻  Volver a buscar", self.scan,
+                                      width=160, height=40, kind="glass")
+        self.scan_button.pack(side="right")
 
-        # Preview card
-        card = ttk.Frame(outer, style="Card.TFrame", padding=(16, 14))
+        # Preview glass panel
+        card = tk.Frame(self.content, bg=GLASS, highlightbackground=WHITE, highlightthickness=2,
+                        padx=19, pady=17)
         card.pack(fill="both", expand=True)
-        heading = ttk.Frame(card, style="Card.TFrame")
-        heading.pack(fill="x", pady=(0, 10))
-        heading_left = ttk.Frame(heading, style="Card.TFrame")
+        heading = tk.Frame(card, bg=GLASS)
+        heading.pack(fill="x", pady=(0, 12))
+        heading_left = tk.Frame(heading, bg=GLASS)
         heading_left.pack(side="left", fill="x", expand=True)
-        ttk.Label(heading_left, text="Vista previa", style="Card.TLabel",
-                  font=("TkDefaultFont", 12, "bold")).pack(anchor="w")
-        ttk.Label(heading_left, text="Reconoce los nombres antiguos y los nuevos de Google Takeout.",
-                  style="Muted.TLabel").pack(anchor="w", pady=(3, 0))
-        self.count_label = tk.Label(heading, text="0 archivos", bg="#edf2f8", fg=MUTED,
-                                    font=("TkDefaultFont", 9, "bold"), padx=11, pady=6)
+        tk.Label(heading_left, text="Vista previa", bg=GLASS, fg=INK,
+                 font=self.ui_font(13, True)).pack(anchor="w")
+        tk.Label(heading_left, text="Revisa los JSON asociados antes de eliminarlos.", bg=GLASS, fg=MUTED,
+                 font=self.ui_font(9)).pack(anchor="w", pady=(4, 0))
+        self.count_label = tk.Label(heading, text="0 archivos", bg="#edf2f9", fg=MUTED,
+                                    font=self.ui_font(9, True), padx=13, pady=8)
         self.count_label.pack(side="right", anchor="n")
 
-        table = ttk.Frame(card, style="Card.TFrame")
-        table.pack(fill="both", expand=True)
-        self.tree = ttk.Treeview(table, columns=("name", "location"), show="headings", selectmode="browse")
+        table_shell = tk.Frame(card, bg=WHITE, highlightbackground=BORDER, highlightthickness=1)
+        table_shell.pack(fill="both", expand=True)
+        self.tree = ttk.Treeview(table_shell, columns=("name", "location"), show="headings", selectmode="browse")
         self.tree.heading("name", text="ARCHIVO DE METADATOS")
-        self.tree.heading("location", text="CARPETA")
-        self.tree.column("name", anchor="w", width=380, minwidth=220)
+        self.tree.heading("location", text="UBICACIÓN")
+        self.tree.column("name", anchor="w", width=440, minwidth=230)
         self.tree.column("location", anchor="w", width=300, minwidth=150)
-        self.tree.tag_configure("odd", background="#f8faff")
+        self.tree.tag_configure("odd", background="#f7faff")
         self.tree.tag_configure("even", background=WHITE)
-        yscroll = ttk.Scrollbar(table, orient="vertical", command=self.tree.yview)
+        yscroll = ttk.Scrollbar(table_shell, orient="vertical", command=self.tree.yview)
         xscroll = ttk.Scrollbar(card, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=yscroll.set, xscrollcommand=xscroll.set)
-        self.tree.pack(side="left", fill="both", expand=True)
-        yscroll.pack(side="right", fill="y")
-        xscroll.pack(fill="x", pady=(5, 0))
+        self.tree.pack(side="left", fill="both", expand=True, padx=(1, 0), pady=1)
+        yscroll.pack(side="right", fill="y", pady=1)
+        xscroll.pack(fill="x", pady=(6, 0))
 
-        # Safe-action footer
-        footer = ttk.Frame(outer)
-        footer.pack(fill="x", pady=(15, 0))
-        status_box = tk.Frame(footer, bg=BG)
-        status_box.pack(side="left", fill="x", expand=True, padx=(0, 14))
-        self.status_dot = tk.Label(status_box, text="●", bg=BG, fg="#9aa8bb", font=("TkDefaultFont", 9))
-        self.status_dot.pack(side="left", padx=(0, 7), pady=(2, 0))
-        ttk.Label(status_box, textvariable=self.status_var, style="TLabel", wraplength=450,
-                  justify="left").pack(side="left", fill="x", expand=True)
-        self.delete_button = ttk.Button(footer, text="Eliminar solo los .json",
-                                        style="Delete.TButton", command=self.delete)
+        # Calm, explicit safety footer and delete action
+        footer = ttk.Frame(self.content, style="Root.TFrame")
+        footer.pack(fill="x", pady=(16, 0))
+        status = tk.Frame(footer, bg=BG_BOTTOM)
+        status.pack(side="left", fill="x", expand=True, padx=(0, 12))
+        self.status_dot = tk.Label(status, text="●", bg=BG_BOTTOM, fg="#aab5c6", font=self.ui_font(9))
+        self.status_dot.pack(side="left", padx=(0, 8), pady=(2, 0))
+        ttk.Label(status, textvariable=self.status_var, wraplength=460, justify="left").pack(
+            side="left", fill="x", expand=True)
+        self.delete_button = PillButton(footer, "Eliminar solo los JSON", self.delete,
+                                        width=205, height=48, kind="danger")
         self.delete_button.pack(side="right")
-        self.delete_button.state(["disabled"])
+        self.delete_button.set_enabled(False)
 
-        tk.Label(outer, text="Tus fotos no se abren ni se modifican. Todo el proceso es local y sin internet.",
-                 bg=BG, fg=MUTED, font=("TkDefaultFont", 9)).pack(anchor="w", pady=(13, 0))
+        tk.Label(self.content, text="Las fotos nunca se abren ni se modifican  ·  Sin conexión a internet",
+                 bg=BG_BOTTOM, fg=MUTED, font=self.ui_font(9)).pack(anchor="w", pady=(13, 0))
+
+    def _paint_wallpaper(self, event):
+        width, height = max(event.width, 1), max(event.height, 1)
+        self.wallpaper.delete("wallpaper")
+        band = 12
+        count = max(1, (height + band - 1) // band)
+        for index in range(count):
+            y1 = index * band
+            y2 = min(height, y1 + band + 1)
+            color = _mix_color(BG_TOP, BG_BOTTOM, index / max(1, count - 1))
+            self.wallpaper.create_rectangle(0, y1, width, y2, fill=color, outline=color, tags="wallpaper")
+        self.wallpaper.create_oval(width * .68, -150, width + 130, 210, fill="#e3eaff",
+                                   outline="", stipple="gray75", tags="wallpaper")
+        self.wallpaper.create_oval(-130, height * .57, 270, height + 170, fill="#e8f2ff",
+                                   outline="", stipple="gray75", tags="wallpaper")
+        self.wallpaper.create_oval(width * .48, height * .72, width * .84, height * 1.28,
+                                   fill="#f0eaff", outline="", stipple="gray75", tags="wallpaper")
+        self.wallpaper.coords(self.content_window, width / 2, 0)
+        self.wallpaper.itemconfigure(self.content_window, width=max(700, width - 42))
+        self.wallpaper.tag_lower("wallpaper")
 
     def _register_drop(self, widget):
         try:
@@ -206,15 +316,15 @@ class App(TkinterDnD.Tk):
             self.tree.insert("", "end", values=(path.name, parent), tags=("even" if index % 2 == 0 else "odd",))
         count = len(self.matches)
         self.count_label.configure(text=f"{count} archivo" + ("s" if count != 1 else ""),
-                                   bg="#e9f1ff" if count else "#edf2f8", fg=BLUE if count else MUTED)
+                                   bg="#e7f1ff" if count else "#edf2f9", fg=BLUE if count else MUTED)
         if count:
             self.status_var.set("Revisa la lista. Solo se borrarán estos sidecars JSON asociados a fotos.")
             self.status_dot.configure(fg=BLUE)
-            self.delete_button.state(["!disabled"])
+            self.delete_button.set_enabled(True)
         else:
             self.status_var.set("No se encontraron JSON asociados a fotos en esta carpeta.")
-            self.status_dot.configure(fg="#9aa8bb")
-            self.delete_button.state(["disabled"])
+            self.status_dot.configure(fg="#aab5c6")
+            self.delete_button.set_enabled(False)
 
     def delete(self):
         if not self.matches:
@@ -243,6 +353,5 @@ class App(TkinterDnD.Tk):
 
 if __name__ == "__main__":
     App().mainloop()
-
 
 
