@@ -36,7 +36,14 @@ class PillButton(tk.Canvas):
     """Small rounded, glossy button drawn with standard Tk Canvas primitives."""
 
     def __init__(self, master, text, command, width=150, height=44, kind="glass"):
-        super().__init__(master, width=width, height=height, bg=master.cget("bg"),
+        if isinstance(master, ttk.Widget):
+            parent_style = master.cget("style") or master.winfo_class()
+            background = ttk.Style(master).lookup(parent_style, "background")
+            if not background:
+                background = master.winfo_toplevel().cget("bg")
+        else:
+            background = master.cget("bg")
+        super().__init__(master, width=width, height=height, bg=background,
                          highlightthickness=0, bd=0, cursor="hand2")
         self.label = text
         self.command = command
