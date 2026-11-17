@@ -6,3 +6,4 @@ dist/
 *.spec.tmp
 TakeoutLimpieza.spec
 packaging/fedora/rpmbuild/
+pruebas_takeout/
