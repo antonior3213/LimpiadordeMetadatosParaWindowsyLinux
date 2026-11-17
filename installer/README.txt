@@ -1,11 +1,7 @@
-INSTALADOR DE WINDOWS
+# Paquete de instalación para Windows
 
-Este proyecto puede distribuirse mediante un instalador que copia el programa a la carpeta de aplicaciones del usuario, crea un acceso en el menú Inicio y ofrece un acceso directo en el escritorio. Después de instalarlo, se abre desde esos accesos, igual que las demás aplicaciones. El programa instalado sigue conteniendo el ejecutable necesario para funcionar; el instalador evita que tengas que abrirlo desde la carpeta dist.
+1. Ejecuta `build_windows.bat` si necesitas regenerar `dist\TakeoutLimpieza.exe`.
+2. Ejecuta `build_installer.bat`. Creará `Instalador_Windows_Takeout.zip` sin necesitar Inno Setup.
+3. Extrae el ZIP y ejecuta `Instalar.bat`. La aplicación se instala para tu usuario y crea accesos directos en el escritorio y el menú Inicio.
 
-Para crear el instalador:
-1. Genera primero dist\TakeoutLimpieza.exe con build_windows.bat.
-2. Instala Inno Setup 6 desde su página oficial (solo hace falta para crear el instalador).
-3. Ejecuta build_installer.bat.
-4. El instalador aparecerá en installer\Output\Instalador_TakeoutLimpieza_Windows.exe.
-
-Al ejecutarlo, elige si quieres un acceso directo en el escritorio. También quedará disponible en el menú Inicio y en la lista de aplicaciones instaladas, desde donde se puede desinstalar.
+Para desinstalarla, ejecuta `Desinstalar.bat` desde la carpeta extraída. El programa instalado permanece en `%LOCALAPPDATA%\Programs\TakeoutLimpieza`.

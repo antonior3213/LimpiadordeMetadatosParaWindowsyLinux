@@ -7,3 +7,5 @@ dist/
 TakeoutLimpieza.spec
 packaging/fedora/rpmbuild/
 pruebas_takeout/
+paquete_instalacion_windows/
+Instalador_Windows_Takeout.zip

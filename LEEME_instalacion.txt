@@ -1,0 +1,9 @@
+INSTALAR EL LIMPIADOR
+
+1. Extrae todos los archivos del ZIP a una carpeta.
+2. Haz doble clic en Instalar.bat.
+3. Busca "Limpiador de Google Takeout" en el escritorio o en el menu Inicio.
+
+Se instala solo para tu usuario en %LOCALAPPDATA%\Programs\TakeoutLimpieza. No necesita permisos de administrador ni conexion a internet. Para quitarlo, ejecuta Desinstalar.bat desde la carpeta extraida.
+
+El ZIP evita que tengas que abrir el EXE desde Descargas. Windows necesita un archivo ejecutable dentro de la aplicacion para poder ejecutarla; normalmente la abriras con el acceso directo.

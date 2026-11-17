@@ -30,13 +30,16 @@ En Fedora puede ser necesario instalar Tkinter primero:
 sudo dnf install python3-tkinter
 ```
 
-## Crear el ejecutable de Windows
+## Instalar como aplicación en Windows
 
-En Windows, con Python 3 instalado, ejecuta `build_windows.bat`. El ejecutable quedará en `dist\TakeoutLimpieza.exe`. La primera compilación instala PyInstaller y `tkinterdnd2` en un entorno virtual del proyecto y requiere conexión para descargar esos paquetes. El programa compilado no usa internet al ejecutarse.
+1. Compila la aplicación con `build_windows.bat` si hace falta.
+2. Ejecuta `build_installer.bat` para crear `Instalador_Windows_Takeout.zip`.
+3. Extrae el ZIP y abre `Instalar.bat`. Crea accesos en escritorio y menú Inicio, sin permisos de administrador ni internet.
+4. Para quitarla, usa `Desinstalar.bat` desde la carpeta extraída.
 
 ## Crear el paquete RPM de Fedora
 
-El RPM debe construirse en Fedora (o en un entorno Fedora), no en Windows. Consulta `packaging/fedora/README.md` para preparar las dependencias y ejecutar el script de compilación. El paquete instala la aplicación y un acceso al menú de aplicaciones.
+El RPM debe construirse en Fedora (o en un entorno Fedora), no en Windows. Consulta `packaging/fedora/README.md` para preparar las dependencias y ejecutar el script de compilación.
 
 ## Privacidad y seguridad
 
