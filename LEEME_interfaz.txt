@@ -1,0 +1,34 @@
+LIMPIADOR GRÁFICO DE GOOGLE TAKEOUT
+
+Archivos:
+- takeout_limpieza_windows.py: versión para Windows.
+- takeout_limpieza_fedora.py: versión para Fedora Linux.
+- requirements_gui.txt: dependencia para habilitar arrastrar y soltar.
+
+Las dos versiones hacen lo mismo y funcionan sin conexión una vez preparada la dependencia.
+La app solo busca archivos con patrón foto.ext.json cuando la foto asociada existe.
+No abre ni modifica fotos. Antes de borrar, muestra la lista y pide confirmación.
+
+WINDOWS
+1. Instala Python 3 si hace falta.
+2. En PowerShell, instala el soporte de arrastrar y soltar:
+   py -m pip install tkinterdnd2
+3. Ejecuta:
+   py .\takeout_limpieza_windows.py
+4. Arrastra la carpeta de Takeout a la ventana, o pulsa “Elegir carpeta…”.
+
+FEDORA
+1. Instala Python y Tkinter si hace falta:
+   sudo dnf install python3 python3-tkinter
+2. Instala el soporte de arrastrar y soltar:
+   python3 -m pip install --user tkinterdnd2
+   Si Fedora bloquea la instalación global, usa un entorno virtual:
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install tkinterdnd2
+3. Ejecuta:
+   python3 takeout_limpieza_fedora.py
+4. Arrastra la carpeta de Takeout a la ventana, o pulsa “Elegir carpeta…”.
+
+La instalación inicial de tkinterdnd2 puede requerir internet. La aplicación no accede a internet;
+si necesitas preparar el programa sin conexión, instala el paquete desde un archivo wheel local.

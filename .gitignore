@@ -1,0 +1,8 @@
+.venv/
+.venv-rpm/
+__pycache__/
+build/
+dist/
+*.spec.tmp
+TakeoutLimpieza.spec
+packaging/fedora/rpmbuild/
